@@ -83,6 +83,7 @@ for i in range(2):
     server2_service_time.append(13.5)
 
 
+
 class Server(object):
     def __init__(self, env, num_servers):
         self.env = env
@@ -95,24 +96,25 @@ class Server(object):
 
 
 def service(env, name, server, line, time_in_line, clients_server,
-            server_in_use, time_in_server, servidor1_service_time,
+            time_in_server, servidor1_service_time,
             servidor2_service_time):
+    global server_in_use
     line.append(len(server.machine.queue))
     print('%s arrives at the server at %.2f.' % (name, env.now))
     process_in_line = env.now
     with server.machine.request() as request:
             yield request
 
-            if server_in_use:
+            if server_in_use == 0:
                 print("%s gonna use server 1" % name)
                 server.serverTime = random.choice(servidor1_service_time)
-                server_in_use = 0
+                server_in_use = 1
                 clients_server[0] += 1
 
             else:
                 print("%s gonna use server 2" % name)
                 server.serverTime = random.choice(servidor2_service_time)
-                server_in_use = 1
+                server_in_use = 0
                 clients_server[1] += 1
 
             print('%s enters the server at %.2f.' % (name, env.now))
@@ -132,11 +134,13 @@ def service(env, name, server, line, time_in_line, clients_server,
 
 
 def setup(env, nun_server, time_between_arrival, avarage_time_create_process,
-          clients, server1_service_time, server2_service_time, clients_server):
+          server1_service_time, server2_service_time, clients_server,
+          ):
     # Create the environment
     environment = Server(env, nun_server)
     i = 0
     # Create more process while the simulation is running
+    global clients
     while True:
         # Time to create a new service
         time = random.choice(time_between_arrival)
@@ -145,7 +149,7 @@ def setup(env, nun_server, time_between_arrival, avarage_time_create_process,
         yield env.timeout(time)
         clients += 1
         env.process(service(env, 'process %d' % i, environment, line,
-                            time_in_line, clients_server, server_in_use,
+                            time_in_line, clients_server,
                             time_in_server, server1_service_time,
                             server2_service_time))
         i += 1
@@ -156,7 +160,7 @@ random.seed(RANDOM_SEED)  # This helps reproducing the results
 # Create an environment and start the setup process
 env = simpy.Environment()
 env.process(setup(env, NUM_SERVERS, time_between_arrival,
-                  avarage_time_create_process, clients, server1_service_time,
+                  avarage_time_create_process, server1_service_time,
                   server2_service_time, clients_server))
 # Execute!
 env.run(until=SIM_TIME)
@@ -183,8 +187,10 @@ for value in avarage_time_create_process:
     valores += value
 media_para_criar_processo = value/len(avarage_time_create_process)
 
-# clients_server_1 = round(clients_server[0], 2)/round(clients, 2) * 100
-# clients_server_2 = round(clients_server[1], 2)/round(clients, 2) * 100
+
+clients_server_1 = round(clients_server[0], 2)/round(clients, 2) * 100
+clients_server_2 = round(clients_server[1], 2)/round(clients, 2) * 100
+
 
 print("\n\n\n")
 print("Respostas para as perguntas")
@@ -194,5 +200,5 @@ print("Numero Médio de Clientes %s" % media_de_clients)
 print("Tempo Medio de um Cliente na Fila: %i" % media_de_tempo_fila)
 print("Tempo Medio no Sistema: %i" % media_de_tempo_servidor)
 print("Tempo Medio para criar um processo: %i" % media_para_criar_processo)
-# print("porcentagem de clientes no servidor 1: %f" % round(clients_server_1, 2))
-# print("porcentagem de clientes no servidor 2: %f" % round(clients_server_2, 2))
+print("porcentagem de clientes no servidor 1: %f" % round(clients_server_1, 2))
+print("porcentagem de clientes no servidor 2: %f" % round(clients_server_2, 2))
